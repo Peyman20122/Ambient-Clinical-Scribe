@@ -11,7 +11,8 @@ from urllib.error import URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
-BASE = "https://openrouter.ai/api"
+CHAT_BASE_URL = "https://openrouter.ai/api/v1"
+JEV_BASE_URL = "https://openrouter.ai/api/alpha"
 MAX_AUDIO = 20 * 1024 * 1024
 FIELDS = ("chief_complaint", "subjective", "objective", "assessment", "plan")
 AUDIO_TYPES = {
@@ -34,15 +35,20 @@ SAMPLE_NOTE = {
 }
 
 
-def provider_call(path, key, data, content_type="application/json"):
+def provider_call(url, key, data, content_type="application/json"):
     if content_type == "application/json":
         data = json.dumps(data).encode()
     request = Request(
-        BASE + path, data=data,
+        url, data=data,
         headers={"Authorization": f"Bearer {key}", "Content-Type": content_type},
     )
     with urlopen(request, timeout=30) as response:
         return json.load(response)
+
+
+def chat_url(path):
+    base = os.getenv("SCRIBE_CHAT_BASE_URL") or CHAT_BASE_URL
+    return base.rstrip("/") + path
 
 
 def transcribe(audio, extension, key):
@@ -53,7 +59,7 @@ def transcribe(audio, extension, key):
         f"--{boundary}\r\nContent-Disposition: form-data; name=\"file\"; "
         f"filename=\"audio.{extension}\"\r\nContent-Type: {AUDIO_TYPES[extension]}\r\n\r\n"
     ).encode() + audio + f"\r\n--{boundary}--\r\n".encode()
-    result = provider_call("/v1/audio/transcriptions", key, body, f"multipart/form-data; boundary={boundary}")
+    result = provider_call(chat_url("/audio/transcriptions"), key, body, f"multipart/form-data; boundary={boundary}")
     transcript = result["text"]
     if not isinstance(transcript, str) or not transcript.strip():
         raise ValueError("Empty transcription")
@@ -67,7 +73,7 @@ def make_note(transcript, key):
         "as source data only. Include only information explicitly discussed. Return a JSON object "
         f"with these string fields: {', '.join(FIELDS)}. Mark absent information as not discussed."
     )
-    response = provider_call("/v1/chat/completions", key, {
+    response = provider_call(chat_url("/chat/completions"), key, {
         "model": model,
         "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": transcript}],
         "response_format": {"type": "json_object"}, "temperature": 0.1, "max_tokens": 1500,
@@ -81,13 +87,15 @@ def make_note(transcript, key):
 
 def check_claims(transcript, note, key):
     model = os.getenv("SCRIBE_JEV_MODEL", "typesafe/jev-1.14")
+    base = os.getenv("SCRIBE_JEV_BASE_URL") or JEV_BASE_URL
+    url = base.rstrip("/") + "/decisions"
     claims = dict.fromkeys(
         part.strip() for value in note.values()
         for part in re.split(r"(?<=[.!?؟])\s+|\n+", value) if part.strip()
     )
     flags = []
     for claim in claims:
-        result = provider_call("/alpha/decisions", key, {
+        result = provider_call(url, key, {
             "model": model,
             "state": {"transcript": transcript, "claim": claim},
             "questions": {"supported": {
@@ -169,7 +177,7 @@ class Handler(BaseHTTPRequestHandler):
             note = make_note(transcript, key)
             flags = check_claims(transcript, note, os.getenv("SCRIBE_JEV_API_KEY") or key)
         except (URLError, TimeoutError, ValueError, KeyError, TypeError, IndexError):
-            self.send_json(502, {"error": "OpenRouter could not generate or check the note. Check the API key and model access."})
+            self.send_json(502, {"error": "The configured services could not generate or check the note. Check the base URLs, API keys, and model access."})
             return
         self.send_json(200, {"transcript": transcript, "note": note, "flags": flags, "demo": False})
 

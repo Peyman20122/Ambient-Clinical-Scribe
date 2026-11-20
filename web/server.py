@@ -7,7 +7,7 @@ import re
 import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
-from urllib.error import URLError
+from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
 
 ROOT = Path(__file__).resolve().parent
@@ -171,15 +171,38 @@ class Handler(BaseHTTPRequestHandler):
             except (ValueError, KeyError, TypeError, AttributeError):
                 self.send_json(400, {"error": "The transcript must contain 1 to 30,000 characters."})
                 return
+        stage = "Audio transcription"
         try:
             if audio_mode:
                 transcript = transcribe(body, extension, key)
+            stage = "LLM note generation"
             note = make_note(transcript, key)
+            stage = "Jev claim verification"
             flags = check_claims(transcript, note, os.getenv("SCRIBE_JEV_API_KEY") or key)
-        except (URLError, TimeoutError, ValueError, KeyError, TypeError, IndexError):
-            self.send_json(502, {"error": "The configured services could not generate or check the note. Check the base URLs, API keys, and model access."})
+        except HTTPError as error:
+            status = error.code
+            error.close()
+            hint = {
+                400: "Check the model ID and API compatibility.",
+                401: "Check the API key.",
+                402: "Check the provider balance or credits.",
+                403: "Check key permissions and model access.",
+                404: "Check the base URL and model ID.",
+                429: "Check the provider rate limit or quota.",
+            }.get(status, "Check the provider status.")
+            self.provider_error(stage, f"Provider returned HTTP {status}. {hint}")
+            return
+        except (URLError, TimeoutError):
+            self.provider_error(stage, "Could not reach the provider. Check the base URL and connectivity.")
+            return
+        except (ValueError, KeyError, TypeError, IndexError):
+            self.provider_error(stage, "Unexpected response or invalid configuration. Check the base URL and model compatibility.")
             return
         self.send_json(200, {"transcript": transcript, "note": note, "flags": flags, "demo": False})
+
+    def provider_error(self, stage, summary):
+        self.log_error("%s failed. %s", stage, summary)
+        self.send_json(502, {"error": f"{stage} failed. {summary}"})
 
 
 if __name__ == "__main__":

@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Ambient Clinical Scribe</title>
+<link rel="stylesheet" href="/styles.css">
+<script src="/app.js" defer></script>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <a class="brand" href="#workspace"><span class="brand-icon" data-icon="pulse"></span><span><strong>Clinical Scribe</strong><small>Ambient documentation</small></span></a>
+    <nav aria-label="Workspace">
+      <span class="nav-title">Workspace</span>
+      <a class="nav-link" href="#workspace" data-page="workspace"><span data-icon="edit"></span>New visit</a>
+      <a class="nav-link" href="#guide" data-page="guide"><span data-icon="book"></span>SOAP guide</a>
+    </nav>
+    <div class="sidebar-foot"><span data-icon="shield"></span><div><strong>Clinical review</strong><small>Clinician approval required</small></div></div>
+  </aside>
+  <div class="content">
+    <header class="top"><div class="breadcrumb"><span>Workspace</span><span aria-hidden="true">›</span><strong id="crumb">Visit documentation</strong></div><span class="connection"><i></i><span id="connection">Checking connection</span></span></header>
+    <main>
+    <section id="workspace">
+      <div class="hero">
+        <div class="hero-copy"><span class="hero-icon" data-icon="pulse"></span><h1>Document a clinical visit</h1><p>Turn a visit conversation into a draft SOAP note<br class="wide"> and check it against the transcript.</p></div>
+        <div class="art" aria-hidden="true"><div class="orbit orbit-outer"></div><div class="orbit orbit-inner"></div><span class="art-cross cross-one">+</span><span class="art-cross cross-two">+</span><div class="art-core" data-icon="pulse"></div></div>
+      </div>
+      <div class="panels">
+        <section class="card">
+          <div class="card-head"><span class="tile" data-icon="edit"></span><div><h2>Visit conversation</h2><p>Choose how to add the conversation.</p></div></div>
+          <div class="tabs" role="group" aria-label="Input type">
+            <button type="button" class="active" data-mode="text" aria-pressed="true"><span data-icon="text"></span>Transcript</button>
+            <button type="button" data-mode="audio" aria-pressed="false"><span data-icon="mic"></span>Audio file</button>
+          </div>
+          <form id="scribe">
+            <div id="text-input"><label for="transcript">Transcript</label><textarea dir="auto" id="transcript" maxlength="30000" placeholder="Paste the clinician and patient conversation here…"></textarea><div class="input-foot"><button type="button" class="link-button" id="sample">Load sample</button><span id="count">0 characters</span></div></div>
+            <div id="audio-input" hidden><label for="audio">Visit audio file</label><div class="upload"><span data-icon="upload"></span><input type="file" id="audio" accept=".wav,.mp3,.m4a,.mp4,.webm,.flac,.ogg,.mpeg,.mpga"><small>Maximum 20 MB</small></div></div>
+            <button class="primary" id="submit" type="submit"><span data-icon="spark"></span><span id="submit-label">Generate SOAP note</span></button>
+            <p id="feedback" class="feedback" role="status" hidden></p>
+          </form>
+        </section>
+        <section class="card output" aria-labelledby="output-title">
+          <div class="card-head"><span class="tile purple" data-icon="note"></span><div><h2 id="output-title">Draft note</h2><p>Structured note and flagged claims</p></div></div>
+          <div id="empty"><span class="empty-icon" data-icon="note"></span><h3>No draft yet</h3><p>Add a transcript or audio file to generate a draft.</p></div>
+          <div id="result" hidden><div class="result-head"><span id="result-label"></span><button class="link-button" type="button" id="copy">Copy note</button></div><div id="fields"></div><details id="source-box"><summary>Transcript</summary><p id="source" dir="auto"></p></details><div id="flags"></div></div>
+        </section>
+      </div>
+    </section>
+    <section id="guide" hidden class="card guide"><h1>SOAP note guide</h1><dl><dt>Subjective (S)</dt><dd>Symptoms and other information reported by the patient.</dd><dt>Objective (O)</dt><dd>Observations, exam findings, and results discussed during the visit.</dd><dt>Assessment (A)</dt><dd>The clinical assessment stated during the visit.</dd><dt>Plan (P)</dt><dd>Actions and follow-up discussed during the visit.</dd></dl><a href="#workspace">Back to visit documentation</a></section>
+    </main>
+    <footer><span>Clinical Scribe</span><span>Review the draft before adding it to the clinical record.</span></footer>
+  </div>
+</div>
+</body>
+</html>

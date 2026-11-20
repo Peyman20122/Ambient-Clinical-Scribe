@@ -24,5 +24,8 @@ Live processing sends the transcript or audio to OpenRouter. Use synthetic data 
 | `SCRIBE_JEV_API_KEY` | Your Jev API key. If omitted, the app uses the LLM API key. |
 | `SCRIBE_JEV_MODEL` | `typesafe/jev-1.14` |
 | `SCRIBE_JEV_BASE_URL` | `https://openrouter.ai/api/alpha` |
+| `SCRIBE_JEV_ENDPOINT` | Optional full Jev request URL from your provider. Takes precedence over `SCRIBE_JEV_BASE_URL`. |
 
 The listed URLs and model IDs are defaults. Use the base paths only. The app appends `/chat/completions` for the LLM, `/audio/transcriptions` for audio, and `/decisions` for Jev. If you use different providers, use compatible endpoints and configure each provider's own key.
+
+Set `SCRIBE_JEV_ENDPOINT` when your provider documents a complete Jev URL with a different route. The app sends its Jev decision request to that URL as entered. The provider must accept the Jev decision request and return the expected result format.

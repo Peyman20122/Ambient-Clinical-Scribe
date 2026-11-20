@@ -88,7 +88,8 @@ def make_note(transcript, key):
 def check_claims(transcript, note, key):
     model = os.getenv("SCRIBE_JEV_MODEL", "typesafe/jev-1.14")
     base = os.getenv("SCRIBE_JEV_BASE_URL") or JEV_BASE_URL
-    url = base.rstrip("/") + "/decisions"
+    endpoint = os.getenv("SCRIBE_JEV_ENDPOINT", "").strip()
+    url = endpoint or (base.rstrip("/") + "/decisions")
     claims = dict.fromkeys(
         part.strip() for value in note.values()
         for part in re.split(r"(?<=[.!?؟])\s+|\n+", value) if part.strip()
@@ -187,7 +188,7 @@ class Handler(BaseHTTPRequestHandler):
                 401: "Check the API key.",
                 402: "Check the provider balance or credits.",
                 403: "Check key permissions and model access.",
-                404: "Check the base URL and model ID.",
+                404: "Check the endpoint URL and model ID.",
                 429: "Check the provider rate limit or quota.",
             }.get(status, "Check the provider status.")
             self.provider_error(stage, f"Provider returned HTTP {status}. {hint}")
